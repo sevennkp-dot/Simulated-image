@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>แผงจัดการข้อมูล - Door Visualizer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#f6f1e8;
+      --bg-soft:#fcf8f2;
+      --surface:#ffffff;
+      --surface-soft:#fffdfa;
+      --ink:#1d1915;
+      --ink-soft:#6b6154;
+      --line:#e7ddcf;
+      --line-strong:#d7c4a4;
+      --gold:#b88945;
+      --gold-deep:#7a5727;
+      --gold-soft:#fff2d8;
+      --green:#247a58;
+      --green-soft:#edf8f2;
+      --red:#b34a4a;
+      --red-soft:#fff1ef;
+      --blue:#2a5f95;
+      --blue-soft:#eef5ff;
+      --shadow:0 20px 45px rgba(36,28,18,.08);
+      --radius-lg:22px;
+      --radius-md:16px;
+      --radius-sm:12px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      min-height:100vh;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans Thai',sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(184,137,69,.12), transparent 25%),
+        linear-gradient(180deg, #fbf8f3 0%, #f4eee5 100%);
+    }
+
+    .wrap{
+      max-width:1380px;
+      margin:0 auto;
+      padding:28px 22px 40px;
+    }
+
+    .hero{
+      display:flex;
+      justify-content:space-between;
+      gap:18px;
+      align-items:flex-start;
+      margin-bottom:18px;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 12px;
+      border-radius:999px;
+      background:rgba(184,137,69,.12);
+      color:var(--gold-deep);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      margin-bottom:12px;
+    }
+
+    h1{
+      margin:0;
+      font-size:34px;
+      line-height:1.08;
+    }
+
+    .hero-copy p{
+      margin:12px 0 0;
+      color:var(--ink-soft);
+      font-size:15px;
+      line-height:1.6;
+      max-width:760px;
+    }
+
+    .hero-side{
+      min-width:250px;
+      padding:16px 18px;
+      border-radius:18px;
+      border:1px solid rgba(184,137,69,.22);
+      background:linear-gradient(180deg, rgba(255,242,216,.95), rgba(255,255,255,.92));
+      box-shadow:var(--shadow);
+    }
+
+    .hero-side strong{
+      display:block;
+      margin-bottom:6px;
+      font-size:13px;
+    }
+
+    .hero-side p{
+      margin:0;
+      color:var(--ink-soft);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+
+    .stat{
+      padding:16px 18px;
+      border-radius:18px;
+      border:1px solid rgba(215,196,164,.75);
+      background:rgba(255,255,255,.85);
+      box-shadow:0 8px 20px rgba(26,23,20,.05);
+      backdrop-filter:blur(10px);
+    }
+
+    .stat span{
+      display:block;
+      margin-bottom:8px;
+      font-size:12px;
+      color:var(--ink-soft);
+    }
+
+    .stat strong{
+      display:block;
+      font-size:24px;
+      line-height:1.05;
+    }
+
+    .stat small{
+      display:block;
+      margin-top:7px;
+      color:var(--ink-soft);
+      font-size:12px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.45fr) minmax(340px,.9fr);
+      gap:20px;
+      align-items:start;
+    }
+
+    .card{
+      background:rgba(255,255,255,.95);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+
+    .card-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      margin-bottom:16px;
+    }
+
+    .card-header h2,
+    .card-header h3{
+      margin:0;
+      font-size:18px;
+    }
+
+    .card-header p{
+      margin:6px 0 0;
+      color:var(--ink-soft);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .muted{
+      color:var(--ink-soft);
+      font-size:13px;
+    }
+
+    .notice{
+      background:linear-gradient(180deg,#fff8e7,#fffdf8);
+      border:1px solid #edd7ad;
+      border-radius:16px;
+      padding:14px 15px;
+      margin-bottom:16px;
+      color:#8c6b36;
+      font-size:14px;
+      line-height:1.55;
+    }
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      min-height:42px;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--bg-soft);
+      color:var(--ink-soft);
+      font-size:13px;
+      font-weight:700;
+      text-align:left;
+    }
+
+    .status-pill[data-tone="success"]{
+      background:var(--green-soft);
+      border-color:#cbe6d8;
+      color:var(--green);
+    }
+
+    .status-pill[data-tone="error"]{
+      background:var(--red-soft);
+      border-color:#efc6c2;
+      color:var(--red);
+    }
+
+    .status-pill[data-tone="info"]{
+      background:var(--blue-soft);
+      border-color:#ccddf4;
+      color:var(--blue);
+    }
+
+    .toolbar{
+      display:grid;
+      grid-template-columns:minmax(220px,1fr) auto auto auto;
+      gap:10px;
+      align-items:center;
+      margin-bottom:16px;
+    }
+
+    .btn{
+      display:inline-flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      min-height:44px;
+      padding:10px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      font:inherit;
+      font-size:13px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
+      border-color:var(--line-strong);
+      box-shadow:0 10px 18px rgba(26,23,20,.07);
+    }
+
+    .btn.primary{
+      color:#fff;
+      border:none;
+      background:linear-gradient(135deg,var(--gold),var(--gold-deep));
+      box-shadow:0 10px 22px rgba(184,137,69,.28);
+    }
+
+    .btn.danger{
+      background:#fff7f6;
+      border-color:#efc5bf;
+      color:var(--red);
+    }
+
+    .small{
+      min-height:36px;
+      padding:8px 12px;
+      border-radius:12px;
+      font-size:12px;
+    }
+
+    select,
+    input[type=text],
+    input[type=number],
+    input[type=file]{
+      width:100%;
+      padding:12px 13px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      color:var(--ink);
+      font:inherit;
+      transition:.18s ease;
+    }
+
+    input[type=file]{
+      background:#fcfaf6;
+      padding:10px 13px;
+    }
+
+    select:focus,
+    input:focus{
+      outline:none;
+      border-color:var(--gold);
+      box-shadow:0 0 0 4px rgba(184,137,69,.12);
+    }
+
+    .list-shell{
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:var(--surface);
+    }
+
+    .list-meta{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:14px 16px;
+      background:var(--surface-soft);
+      border-bottom:1px solid var(--line);
+    }
+
+    .entity-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 12px;
+      border-radius:999px;
+      background:#f6eee0;
+      color:var(--gold-deep);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.03em;
+    }
+
+    .table-wrap{
+      overflow:auto;
+    }
+
+    table{
+      width:100%;
+      min-width:760px;
+      border-collapse:collapse;
+    }
+
+    th,td{
+      padding:12px 14px;
+      border-bottom:1px solid #f1ebdf;
+      text-align:left;
+      font-size:14px;
+      vertical-align:middle;
+    }
+
+    th{
+      position:sticky;
+      top:0;
+      z-index:1;
+      background:#fffdfa;
+      color:var(--ink-soft);
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+
+    tbody tr:hover{
+      background:#fffcf7;
+    }
+
+    .cell-strong{
+      font-weight:800;
+    }
+
+    .empty-state{
+      padding:32px 18px;
+      text-align:center;
+      color:var(--ink-soft);
+    }
+
+    .form-card{
+      position:sticky;
+      top:18px;
+    }
+
+    .mode-badge{
+      display:inline-flex;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      background:#f6efe1;
+      color:var(--gold-deep);
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .field{
+      margin-top:12px;
+    }
+
+    .field-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    label{
+      display:block;
+      margin:0 0 7px;
+      font-size:12px;
+      font-weight:800;
+      color:var(--ink-soft);
+    }
+
+    .helper{
+      margin-top:7px;
+      color:var(--ink-soft);
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .upload-row{
+      display:grid;
+      grid-template-columns:130px 1fr;
+      gap:10px;
+      align-items:center;
+      margin-top:10px;
+    }
+
+    .actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:16px;
+    }
+
+    .actions .btn:first-child{
+      grid-column:1 / -1;
+    }
+
+    .debug-card{
+      margin-top:16px;
+      padding-top:16px;
+      border-top:1px solid var(--line);
+    }
+
+    .debug-title{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    pre{
+      display:none;
+      margin:0;
+      max-height:220px;
+      overflow:auto;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.06);
+      background:#14110f;
+      color:#f5e7c5;
+      font-size:12px;
+      line-height:1.55;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    code{
+      padding:2px 5px;
+      border-radius:6px;
+      background:rgba(122,87,39,.08);
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:.95em;
+    }
+
+    @media (max-width:1080px){
+      .hero,
+      .card-header,
+      .list-meta{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .stats{
+        grid-template-columns:1fr;
+      }
+
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .form-card{
+        position:static;
+      }
+
+      .toolbar{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .toolbar .btn{
+        width:100%;
+      }
+    }
+
+    @media (max-width:720px){
+      .wrap{
+        padding:18px 14px 30px;
+      }
+
+      h1{
+        font-size:28px;
+      }
+
+      .toolbar,
+      .field-grid,
+      .upload-row,
+      .actions{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">ศูนย์จัดการข้อมูล CGA Alutech</div>
+        <h1>แผงจัดการฉาก / บาน / มือจับ</h1>
+        <p>หน้านี้ออกแบบให้เป็นพื้นที่จัดการข้อมูลที่ใช้งานจริงได้ง่ายขึ้น เห็นรายการเร็ว แก้ไขไว และลดความสับสนเวลาเพิ่ม asset หรืออัปเดตรายการใน Supabase</p>
+      </div>
+      <aside class="hero-side">
+        <strong>หมายเหตุการใช้งาน</strong>
+        <p>หน้านี้แยกจากหน้าโปรดักชัน และยังใช้ Supabase client จากฝั่ง browser โดยตรง จึงเหมาะกับงานจัดการข้อมูลภายในมากกว่างานที่ต้องการ security สูง</p>
+      </aside>
+    </section>
+
+    <section class="stats">
+      <div class="stat">
+        <span>หมวดข้อมูลปัจจุบัน</span>
+        <strong id="entityLabel">ฉากห้อง</strong>
+        <small id="entityTableName">room_scenes</small>
+      </div>
+      <div class="stat">
+        <span>จำนวนรายการที่เห็น</span>
+        <strong id="entityCount">0</strong>
+        <small>ดึงมาจากตารางที่เลือกอยู่</small>
+      </div>
+      <div class="stat">
+        <span>กิจกรรมล่าสุด</span>
+        <strong id="lastActionLabel">พร้อมใช้งาน</strong>
+        <small id="lastActionTime">รอการทำงาน</small>
+      </div>
+    </section>
+
+    <div class="grid">
+      <div>
+        <div class="card" id="mainCard">
+          <div class="card-header">
+            <div>
+              <h2>รายการข้อมูล</h2>
+              <p>เลือกหมวดข้อมูล รีเฟรชรายการ และกดปุ่มแก้ไขเพื่อดึงข้อมูลมาแก้ในฟอร์มด้านขวาได้ทันที</p>
+            </div>
+            <div id="status" class="status-pill" data-tone="info">พร้อมใช้งาน</div>
+          </div>
+
+          <div class="notice">หมายเหตุ: หน้านี้ใช้ Supabase client ด้วย <strong>anon key</strong> ที่ฝังในไฟล์ หากต้องการความปลอดภัยระดับ production ควรย้าย logic สำคัญไปฝั่ง server</div>
+
+          <div class="toolbar">
+            <select id="entitySelect" aria-label="Select entity">
+              <option value="room_scenes">ฉากห้อง (room_scenes)</option>
+              <option value="door_products">บานประตู (door_products)</option>
+              <option value="frame_products">วงกบประตู (frame_products)</option>
+              <option value="handle_products">มือจับ (handle_products)</option>
+              <option value="door_sizes">ขนาดประตู (door_sizes)</option>
+            </select>
+            <button class="btn primary" id="refreshBtn">รีเฟรชข้อมูล</button>
+            <button class="btn" id="testConnBtn" title="ทดสอบการเชื่อมต่อ Supabase">ทดสอบเชื่อมต่อ</button>
+            <button class="btn" id="newBtn">สร้างรายการใหม่</button>
+          </div>
+
+          <div id="listContainer"></div>
+
+          <div class="debug-card">
+            <div class="debug-title">
+              <strong>บันทึกการทำงาน</strong>
+              <span class="muted">ผลจากการทดสอบ / อัปโหลด / API</span>
+            </div>
+            <pre id="debugLog"></pre>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card form-card">
+          <div class="card-header">
+            <div>
+              <h3>แผงแก้ไขข้อมูล</h3>
+              <p>ใช้สำหรับเพิ่ม แก้ไข หรือลบรายการ โดยเน้นให้กรอกต่อเนื่องได้จากหน้าจอเดียว</p>
+            </div>
+            <span class="mode-badge" id="formMode">พร้อมใช้งาน</span>
+          </div>
+
+          <div id="formArea">
+            <div class="field">
+              <label>คีย์รายการ</label>
+              <input type="text" id="f_key" />
+              <div class="helper">ระบบจะสร้าง key ให้อัตโนมัติจากชื่อรายการ แต่คุณยังแก้เองได้ทุกเมื่อ</div>
+            </div>
+
+            <div class="field">
+              <label>ชื่อรายการ</label>
+              <input type="text" id="f_name" />
+            </div>
+
+            <div class="field">
+              <label>พาธรูปภาพ (หรือ URL สาธารณะ)</label>
+              <input type="text" id="f_image" />
+              <div class="helper">ถ้าอัปโหลดรูปสำเร็จ ระบบจะเติม URL สาธารณะให้อัตโนมัติ</div>
+            </div>
+
+            <div class="field">
+              <label>ไฟล์ภาพ (เลือกแล้วกดอัปโหลด)</label>
+              <input type="file" id="fileInput" accept="image/*" />
+            </div>
+
+            <div class="upload-row">
+              <select id="uploadFolder">
+                <option value="rooms">rooms</option>
+                <option value="doors">doors</option>
+                <option value="frames">frames</option>
+                <option value="handles">handles</option>
+              </select>
+              <button class="btn" id="uploadBtn">อัปโหลดไปยัง Storage</button>
+            </div>
+            <div class="helper" id="uploadStatus">พร้อมสำหรับอัปโหลด</div>
+
+            <div class="field-grid">
+              <div class="field">
+                <label>ความกว้าง</label>
+                <input type="number" id="f_w" />
+              </div>
+              <div class="field">
+                <label>ความสูง</label>
+                <input type="number" id="f_h" />
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div class="field">
+                <label>ตำแหน่งพื้น / ตำแหน่งขอบล่าง</label>
+                <input type="text" id="f_floor" />
+                <div class="helper">ค่าเริ่มต้นเป็น <code>0.9600</code> และยังแก้ไขเองได้</div>
+              </div>
+              <div class="field">
+                <label>ลำดับการแสดงผล</label>
+                <input type="number" id="f_sort" readonly />
+                <div class="helper">ระบบจะเติมลำดับให้อัตโนมัติจากค่ามากที่สุดในตารางปัจจุบัน</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>สถานะการใช้งาน</label>
+              <select id="f_active">
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="saveBtn">บันทึก</button>
+              <button class="btn" id="upsertBtn">บันทึกตามคีย์</button>
+              <button class="btn danger" id="deleteBtn">ลบรายการ</button>
+              <button class="btn" id="clearFormBtn">ล้างฟอร์ม</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const SUPABASE_URL = 'https://jxvoejdqcjxndqwqgvoj.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dm9lamRxY2p4bmRxd3Fndm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NzY4MTEsImV4cCI6MjEwMDI1MjgxMX0.OHXJVqB_99UadWY6_6CMSMv67QTtulD7aYKaXjdtYho';
+
+  const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const entityMap = {
+    room_scenes:   {table:'room_scenes',   display:'ฉากห้อง',     fields:['scene_key','name','image_path','width','height','floor_frac','sort_order','is_active']},
+    door_products: {table:'door_products', display:'บานประตู',    fields:['door_key','name','image_path','canvas_w','canvas_h','bottom_frac','sort_order','is_active']},
+    frame_products:{table:'frame_products',display:'วงกบประตู',   fields:['frame_key','name','image_path','sort_order','is_active']},
+    handle_products:{table:'handle_products',display:'มือจับ',    fields:['handle_key','name','image_path','sort_order','is_active']},
+    door_sizes:    {table:'door_sizes',    display:'ขนาดประตู',   fields:['size_key','label','width_cm','height_cm','sort_order','is_active']}
+  };
+  const fieldLabelMap = {
+    scene_key:   'คีย์ฉาก',
+    door_key:    'คีย์บานประตู',
+    frame_key:   'คีย์วงกบ',
+    handle_key:  'คีย์มือจับ',
+    size_key:    'คีย์ขนาด',
+    name:        'ชื่อ',
+    label:       'ป้ายกำกับ (เช่น 200 × 200 ซม.)',
+    image_path:  'พาธรูปภาพ',
+    width:       'กว้าง (scene)',
+    height:      'สูง (scene)',
+    canvas_w:    'กว้าง (canvas)',
+    canvas_h:    'สูง (canvas)',
+    width_cm:    'ความกว้าง (ซม.)',
+    height_cm:   'ความสูง (ซม.)',
+    floor_frac:  'ตำแหน่งพื้น',
+    bottom_frac: 'ตำแหน่งขอบล่าง',
+    sort_order:  'ลำดับ',
+    is_active:   'เปิดใช้งาน'
+  };
+
+  const $ = id => document.getElementById(id);
+  const status = $('status');
+  const entityLabel = $('entityLabel');
+  const entityTableName = $('entityTableName');
+  const entityCount = $('entityCount');
+  const lastActionLabel = $('lastActionLabel');
+  const lastActionTime = $('lastActionTime');
+  let autoKeySyncEnabled = true;
+  let autoKeyRequestId = 0;
+  const STORAGE_BUCKET = 'door-scenes';
+
+  function stampActivity(label){
+    if(lastActionLabel) lastActionLabel.textContent = label;
+    if(lastActionTime) lastActionTime.textContent = new Date().toLocaleString();
+  }
+
+  function setStatus(msg, tone = 'info'){
+    status.textContent = msg;
+    status.dataset.tone = tone;
+  }
+
+  function syncEntitySummary(){
+    const ent = $('entitySelect').value;
+    const cfg = entityMap[ent];
+    entityLabel.textContent = cfg.display;
+    entityTableName.textContent = cfg.table;
+  }
+
+  function slugifyKeyPart(value){
+    return String(value || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-{2,}/g, '-');
+  }
+
+  function getEntityKeyPrefix(){
+    const ent = $('entitySelect').value;
+    if(ent === 'room_scenes')    return 'scene';
+    if(ent === 'door_products')  return 'door';
+    if(ent === 'frame_products') return 'frame';
+    if(ent === 'door_sizes')     return 'size';
+    return 'handle';
+  }
+
+  function getEntityKeyColumn(){
+    const ent = $('entitySelect').value;
+    if(ent === 'room_scenes')    return 'scene_key';
+    if(ent === 'door_products')  return 'door_key';
+    if(ent === 'frame_products') return 'frame_key';
+    if(ent === 'door_sizes')     return 'size_key';
+    return 'handle_key';
+  }
+
+  function resolveStorageObjectPath(rawValue){
+    const value = String(rawValue || '').trim();
+    if(!value) return '';
+
+    if(/^https?:\/\//i.test(value)){
+      try{
+        const url = new URL(value);
+        const marker = `/storage/v1/object/public/${STORAGE_BUCKET}/`;
+        const markerIndex = url.pathname.indexOf(marker);
+        if(markerIndex >= 0){
+          return decodeURIComponent(url.pathname.slice(markerIndex + marker.length));
+        }
+      }catch(e){
+        console.warn('ไม่สามารถแปลง URL ของรูปภาพได้', e);
+      }
+      return '';
+    }
+
+    const cleanedValue = value.replace(/^\/+/g, '');
+    const bucketPrefix = `${STORAGE_BUCKET}/`;
+    return cleanedValue.startsWith(bucketPrefix) ? cleanedValue.slice(bucketPrefix.length) : cleanedValue;
+  }
+
+  async function deleteStorageObjectByImagePath(imagePath){
+    const objectPath = resolveStorageObjectPath(imagePath);
+    if(!objectPath){
+      return { skipped:true };
+    }
+
+    const { error } = await sbClient.storage.from(STORAGE_BUCKET).remove([objectPath]);
+    if(error) throw error;
+    return { skipped:false, objectPath };
+  }
+
+  function buildAutoKeyFromName(nameValue){
+    const slug = slugifyKeyPart(nameValue);
+    const prefix = getEntityKeyPrefix();
+    return slug ? `${prefix}-${slug}` : `${prefix}-item`;
+  }
+
+  async function getUniqueAutoKey(baseKey){
+    const ent = $('entitySelect').value;
+    const cfg = entityMap[ent];
+    const keyCol = getEntityKeyColumn();
+    const rootKey = baseKey || `${getEntityKeyPrefix()}-item`;
+
+    try{
+      const { data, error } = await sbClient
+        .from(cfg.table)
+        .select(keyCol)
+        .ilike(keyCol, `${rootKey}%`);
+
+      if(error) throw error;
+
+      const taken = new Set((data || []).map(row => String(row[keyCol] || '').toLowerCase()));
+      if(!taken.has(rootKey.toLowerCase())){
+        return rootKey;
+      }
+
+      let suffix = 2;
+      while(taken.has(`${rootKey}-${suffix}`.toLowerCase())){
+        suffix += 1;
+      }
+      return `${rootKey}-${suffix}`;
+    }catch(e){
+      console.warn('ไม่สามารถสร้างคีย์ที่ไม่ซ้ำได้', e);
+      return rootKey;
+    }
+  }
+
+  async function syncAutoKeyFromName(force = false){
+    if(!force && !autoKeySyncEnabled) return;
+    const keyInput = $('f_key');
+    const requestId = ++autoKeyRequestId;
+    const baseKey = buildAutoKeyFromName($('f_name').value);
+    const nextKey = await getUniqueAutoKey(baseKey);
+    if(requestId !== autoKeyRequestId) return;
+    if(!force && !autoKeySyncEnabled) return;
+    keyInput.value = nextKey;
+    keyInput.dataset.autoGenerated = 'true';
+  }
+
+  async function getNextSortOrder(){
+    const ent = $('entitySelect').value;
+    const cfg = entityMap[ent];
+
+    try{
+      const { data, error } = await sbClient
+        .from(cfg.table)
+        .select('sort_order')
+        .order('sort_order', { ascending:false })
+        .limit(1);
+
+      if(error) throw error;
+
+      const maxSort = Array.isArray(data) && data.length > 0
+        ? Number(data[0].sort_order) || 0
+        : 0;
+
+      return maxSort + 1;
+    }catch(e){
+      console.warn('ไม่สามารถคำนวณลำดับถัดไปได้', e);
+      return 1;
+    }
+  }
+
+  function renderList(cfg, rows){
+    const container = $('listContainer');
+    if(!rows || rows.length === 0){
+      container.innerHTML = `
+        <div class="list-shell">
+          <div class="list-meta">
+            <div>
+              <div class="entity-chip">${cfg.display}</div>
+              <div class="muted" style="margin-top:6px">${cfg.table}</div>
+            </div>
+            <div class="muted">0 รายการ</div>
+          </div>
+          <div class="empty-state">ไม่พบข้อมูลใน <code>${cfg.table}</code> หรือ ตารางนี้ยังไม่มีรายการ</div>
+        </div>`;
+      return;
+    }
+
+    let html = `
+      <div class="list-shell">
+        <div class="list-meta">
+          <div>
+            <div class="entity-chip">${cfg.display}</div>
+            <div class="muted" style="margin-top:6px">${cfg.table}</div>
+          </div>
+          <div class="muted">โหลดแล้ว ${rows.length} รายการ</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>${cfg.fields.map(f => `<th>${fieldLabelMap[f] || f}</th>`).join('')}<th>จัดการ</th></tr>
+            </thead>
+            <tbody>`;
+
+    rows.forEach(r => {
+      const keyValue = r.scene_key || r.door_key || r.frame_key || r.handle_key || r.id || '';
+      html += '<tr>' + cfg.fields.map((f, index) => `<td class="${index === 0 ? 'cell-strong' : ''}">${String(r[f] === undefined ? '' : r[f])}</td>`).join('') +
+        `<td><button class="btn small" data-key="${keyValue}">แก้ไข</button></td></tr>`;
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('button[data-key]').forEach(button => {
+      button.addEventListener('click', () => populateFormByKey(button.dataset.key));
+    });
+  }
+
+  async function listEntities(){
+    const ent = $('entitySelect').value;
+    const cfg = entityMap[ent];
+    syncEntitySummary();
+    setStatus('กำลังโหลด ' + cfg.display + ' ...', 'info');
+
+    try{
+      const { data, error } = await sbClient
+        .from(cfg.table)
+        .select('*')
+        .order('sort_order', { ascending:true })
+        .order('name', { ascending:true });
+
+      if(error) throw error;
+
+      const rows = data || [];
+      renderList(cfg, rows);
+      entityCount.textContent = String(rows.length);
+      setStatus(`พบ ${rows.length} รายการ`, 'success');
+      stampActivity('รีเฟรชรายการ');
+    }catch(e){
+      console.error(e);
+      entityCount.textContent = '0';
+      renderList(cfg, []);
+      setStatus('โหลดข้อมูลไม่สำเร็จ: ' + (e.message || e), 'error');
+      stampActivity('โหลดข้อมูลไม่สำเร็จ');
+    }
+  }
+
+  async function populateFormByKey(key){
+    const ent = $('entitySelect').value;
+    const cfg = entityMap[ent];
+    setStatus('กำลังโหลดรายการ...', 'info');
+
+    try{
+      const keyCols = ['scene_key','door_key','frame_key','handle_key','id'];
+      let row = null;
+
+      for(const col of keyCols){
+        const { data, error } = await sbClient.from(cfg.table).select('*').eq(col, key).limit(1).single();
+        if(!error && data){
+          row = data;
+          break;
+        }
+      }
+
+      if(!row){
+        setStatus('ไม่พบรายการ', 'error');
+        return;
+      }
+
+      $('f_key').value = row.scene_key || row.door_key || row.frame_key || row.handle_key || row.size_key || row.id || '';
+      $('f_key').dataset.autoGenerated = 'false';
+      $('f_name').value = row.name || row.label || '';
+      $('f_image').value = row.image_path || '';
+      $('f_w').value = row.width || row.canvas_w || row.width_cm || '';
+      $('f_h').value = row.height || row.canvas_h || row.height_cm || '';
+      $('f_floor').value = row.floor_frac || row.bottom_frac || '0.9600';
+      $('f_sort').value = row.sort_order || 0;
+      $('f_active').value = String(row.is_active === false ? 'false' : 'true');
+      $('formMode').textContent = 'กำลังแก้ไข: ' + $('f_key').value;
+      autoKeySyncEnabled = false;
+
+      setStatus('โหลดฟอร์มเรียบร้อย', 'success');
+      stampActivity('เปิดรายการเพื่อแก้ไข');
+    }catch(e){
+      console.error(e);
+      setStatus('ข้อผิดพลาด: ' + (e.message || e), 'error');
+    }
+  }
+
+  async function clearForm(){
+    ['f_key','f_name','f_image','f_w','f_h'].forEach(id => $(id).value = '');
+    $('f_floor').value = '0.9600';
+    $('f_sort').value = String(await getNextSortOrder());
+    $('f_active').value = 'true';
+    $('formMode').textContent = 'รายการใหม่';
+    autoKeySyncEnabled = true;
+    $('f_key').dataset.autoGenerated = 'true';
+    await syncAutoKeyFromName(true);
+  }
+
+  async function upsertEntity(){
+    const ent = $('entitySelect').value;
+    const cfg = entityMap[ent];
+    const key = $('f_key').value.trim();
+
+    if(!key){
+      setStatus('ระบุ key ก่อนบันทึก', 'error');
+      return;
+    }
+
+    const payload = {};
+
+    if(ent === 'room_scenes'){
+      payload.scene_key = key;
+      payload.name = $('f_name').value.trim();
+      payload.image_path = $('f_image').value.trim();
+      if($('f_w').value) payload.width = Number($('f_w').value);
+      if($('f_h').value) payload.height = Number($('f_h').value);
+      if($('f_floor').value) payload.floor_frac = Number($('f_floor').value);
+      if($('f_sort').value) payload.sort_order = Number($('f_sort').value);
+      payload.is_active = $('f_active').value === 'true';
+    } else if(ent === 'door_products'){
+      payload.door_key = key;
+      payload.name = $('f_name').value.trim();
+      payload.image_path = $('f_image').value.trim();
+      if($('f_w').value) payload.canvas_w = Number($('f_w').value);
+      if($('f_h').value) payload.canvas_h = Number($('f_h').value);
+      if($('f_floor').value) payload.bottom_frac = Number($('f_floor').value);
+      if($('f_sort').value) payload.sort_order = Number($('f_sort').value);
+      payload.is_active = $('f_active').value === 'true';
+    } else if(ent === 'frame_products'){
+      payload.frame_key = key;
+      payload.name = $('f_name').value.trim();
+      payload.image_path = $('f_image').value.trim();
+      if($('f_sort').value) payload.sort_order = Number($('f_sort').value);
+      payload.is_active = $('f_active').value === 'true';
+    } else if(ent === 'door_sizes'){
+      payload.size_key  = key;
+      payload.label     = $('f_name').value.trim();
+      if($('f_w').value) payload.width_cm  = Number($('f_w').value);
+      if($('f_h').value) payload.height_cm = Number($('f_h').value);
+      if($('f_sort').value) payload.sort_order = Number($('f_sort').value);
+      payload.is_active = $('f_active').value === 'true';
+    } else {
+      payload.handle_key = key;
+      payload.name = $('f_name').value.trim();
+      payload.image_path = $('f_image').value.trim();
+      if($('f_sort').value) payload.sort_order = Number($('f_sort').value);
+      payload.is_active = $('f_active').value === 'true';
+    }
+
+    try{
+      const conflictCol = ent === 'room_scenes' ? 'scene_key' : (ent === 'door_products' ? 'door_key' : (ent === 'frame_products' ? 'frame_key' : (ent === 'door_sizes' ? 'size_key' : 'handle_key')));
+      const { error } = await sbClient.from(cfg.table).upsert(payload, { onConflict: conflictCol });
+      if(error) throw error;
+
+      setStatus('บันทึกเรียบร้อย', 'success');
+      stampActivity('บันทึกรายการแล้ว');
+      listEntities();
+    }catch(e){
+      console.error(e);
+      setStatus('บันทึกไม่สำเร็จ: ' + (e.message || e), 'error');
+    }
+  }
+
+  async function readImageDimensions(file){
+    return new Promise((resolve, reject) => {
+      if(!file){
+        resolve(null);
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        const dimensions = { width: img.naturalWidth, height: img.naturalHeight };
+        URL.revokeObjectURL(objectUrl);
+        resolve(dimensions);
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('ไม่สามารถอ่านขนาดรูปภาพได้'));
+      };
+
+      img.src = objectUrl;
+    });
+  }
+
+  async function syncDimensionsFromSelectedFile(){
+    const fileEl = $('fileInput');
+    const statusEl = $('uploadStatus');
+    if(!fileEl.files || fileEl.files.length === 0) return;
+
+    try{
+      const dimensions = await readImageDimensions(fileEl.files[0]);
+      if(!dimensions) return;
+      $('f_w').value = String(dimensions.width || '');
+      $('f_h').value = String(dimensions.height || '');
+      statusEl.textContent = `อ่านขนาดรูปแล้ว: ${dimensions.width} × ${dimensions.height} พิกเซล`;
+      statusEl.style.color = 'var(--blue)';
+    }catch(e){
+      console.error(e);
+      statusEl.textContent = 'ไม่สามารถอ่านขนาดรูปภาพได้';
+      statusEl.style.color = 'var(--red)';
+    }
+  }
+
+  async function uploadFile(){
+    const fileEl = $('fileInput');
+    const folder = $('uploadFolder').value || 'rooms';
+    const statusEl = $('uploadStatus');
+
+    if(!fileEl.files || fileEl.files.length === 0){
+      statusEl.textContent = 'โปรดเลือกไฟล์ก่อน';
+      statusEl.style.color = 'var(--red)';
+      return;
+    }
+
+    const file = fileEl.files[0];
+    const bucket = STORAGE_BUCKET;
+    const filename = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'')}`;
+
+    statusEl.textContent = 'กำลังอัปโหลด...';
+    statusEl.style.color = 'var(--blue)';
+
+    try{
+      const { data: uploadData, error: uploadError } = await sbClient.storage.from(bucket).upload(filename, file, { upsert: true });
+      if(uploadError) throw uploadError;
+
+      const { data: publicData, error: publicError } = await sbClient.storage.from(bucket).getPublicUrl(filename);
+      if(publicError) throw publicError;
+
+      const publicUrl = publicData && publicData.publicUrl ? publicData.publicUrl : filename;
+      $('f_image').value = publicUrl;
+      statusEl.textContent = 'อัปโหลดสำเร็จ';
+      statusEl.style.color = 'var(--green)';
+      stampActivity('อัปโหลดรูปสำเร็จ');
+      appendDebug('upload: ' + JSON.stringify({ filename, uploadData, publicUrl }));
+    }catch(e){
+      console.error('Upload failed', e);
+      statusEl.textContent = 'อัปโหลดไม่สำเร็จ: ' + (e.message || e);
+      statusEl.style.color = 'var(--red)';
+      appendDebug('upload error: ' + (e.message || String(e)));
+    }
+  }
+
+  async function deleteEntity(){
+    const ent = $('entitySelect').value;
+    const cfg = entityMap[ent];
+    const key = $('f_key').value.trim();
+
+    if(!key){
+      setStatus('ระบุ key ที่ต้องการลบ', 'error');
+      return;
+    }
+
+    if(!confirm('ลบรายการจริงหรือไม่? ' + key)) return;
+
+    try{
+      const keyCols = cfg.table === 'room_scenes' ? ['scene_key'] : (cfg.table === 'door_products' ? ['door_key'] : (cfg.table === 'frame_products' ? ['frame_key'] : (cfg.table === 'door_sizes' ? ['size_key'] : ['handle_key'])));
+      let res = null;
+
+      for(const col of keyCols){
+        res = await sbClient.from(cfg.table).delete().eq(col, key);
+        if(!res.error) break;
+      }
+
+      if(res && res.error) throw res.error;
+
+      setStatus('ลบเรียบร้อย', 'success');
+      stampActivity('ลบรายการแล้ว');
+      listEntities();
+      clearForm();
+    }catch(e){
+      console.error(e);
+      setStatus('ลบไม่สำเร็จ: ' + (e.message || e), 'error');
+    }
+  }
+
+  async function deleteEntityWithImage(){
+    const ent = $('entitySelect').value;
+    const cfg = entityMap[ent];
+    const key = $('f_key').value.trim();
+    const imagePath = $('f_image').value.trim();
+
+    if(!key){
+      setStatus('ระบุคีย์ที่ต้องการลบ', 'error');
+      return;
+    }
+
+    if(!confirm('ลบรายการจริงหรือไม่? ' + key)) return;
+
+    try{
+      const keyCols = cfg.table === 'room_scenes' ? ['scene_key'] : (cfg.table === 'door_products' ? ['door_key'] : (cfg.table === 'frame_products' ? ['frame_key'] : (cfg.table === 'door_sizes' ? ['size_key'] : ['handle_key'])));
+      let res = null;
+
+      for(const col of keyCols){
+        res = await sbClient.from(cfg.table).delete().eq(col, key);
+        if(!res.error) break;
+      }
+
+      if(res && res.error) throw res.error;
+
+      let storageDeleted = false;
+      try{
+        const storageResult = await deleteStorageObjectByImagePath(imagePath);
+        storageDeleted = !storageResult.skipped;
+        if(storageDeleted){
+          appendDebug('delete image: ' + JSON.stringify(storageResult));
+        }
+      }catch(storageError){
+        console.error('Storage delete failed', storageError);
+        appendDebug('delete image error: ' + (storageError.message || String(storageError)));
+        setStatus('ลบข้อมูลสำเร็จ แต่ลบรูปใน Storage ไม่สำเร็จ: ' + (storageError.message || storageError), 'error');
+        stampActivity('ลบข้อมูลแล้ว แต่ลบรูปไม่สำเร็จ');
+        listEntities();
+        clearForm();
+        return;
+      }
+
+      setStatus(storageDeleted ? 'ลบรายการและรูปใน Storage เรียบร้อย' : 'ลบรายการเรียบร้อย', 'success');
+      stampActivity(storageDeleted ? 'ลบรายการและรูปแล้ว' : 'ลบรายการแล้ว');
+      listEntities();
+      clearForm();
+    }catch(e){
+      console.error(e);
+      setStatus('ลบไม่สำเร็จ: ' + (e.message || e), 'error');
+    }
+  }
+
+  async function testConnection(){
+    setStatus('กำลังทดสอบการเชื่อมต่อ...', 'info');
+
+    try{
+      const res = await sbClient.from('room_scenes').select('id').limit(1).maybeSingle();
+      const { data, error } = res || {};
+      if(error) throw error;
+
+      if(data){
+        setStatus('เชื่อมต่อสำเร็จ - พบอย่างน้อย 1 แถว', 'success');
+      } else {
+        setStatus('เชื่อมต่อสำเร็จ - แต่ยังไม่พบข้อมูลใน room_scenes', 'success');
+      }
+
+      stampActivity('ทดสอบการเชื่อมต่อแล้ว');
+      appendDebug('testConnection result: ' + JSON.stringify(res));
+    }catch(e){
+      console.error('Test connection failed', e);
+      setStatus('การเชื่อมต่อล้มเหลว: ' + (e.message || e), 'error');
+      stampActivity('เชื่อมต่อไม่สำเร็จ');
+      appendDebug(e && e.message ? e.message : String(e));
+    }
+  }
+
+  function appendDebug(msg){
+    try{
+      const el = $('debugLog');
+      el.style.display = 'block';
+      const ts = new Date().toISOString();
+      el.textContent = ts + ' - ' + msg + '\n' + el.textContent;
+    }catch(e){
+      console.warn(e);
+    }
+  }
+
+  $('uploadBtn').addEventListener('click', uploadFile);
+  $('fileInput').addEventListener('change', syncDimensionsFromSelectedFile);
+  $('testConnBtn').addEventListener('click', testConnection);
+  $('refreshBtn').addEventListener('click', listEntities);
+  $('f_name').addEventListener('input', async () => {
+    await syncAutoKeyFromName();
+  });
+  $('f_key').addEventListener('input', () => {
+    const expectedAutoKey = buildAutoKeyFromName($('f_name').value);
+    autoKeySyncEnabled = $('f_key').value.trim() === '' || $('f_key').value === expectedAutoKey;
+    $('f_key').dataset.autoGenerated = autoKeySyncEnabled ? 'true' : 'false';
+  });
+  $('newBtn').addEventListener('click', async () => {
+    await clearForm();
+    setStatus('พร้อมสร้างรายการใหม่', 'info');
+    stampActivity('โหมดสร้างรายการใหม่');
+  });
+  $('entitySelect').addEventListener('change', async () => {
+    const ent = $('entitySelect').value;
+    if(ent === 'room_scenes')    $('uploadFolder').value = 'rooms';
+    else if(ent === 'door_products')  $('uploadFolder').value = 'doors';
+    else if(ent === 'frame_products') $('uploadFolder').value = 'frames';
+    else if(ent === 'handle_products') $('uploadFolder').value = 'handles';
+    // door_sizes ไม่มีรูปภาพ — ไม่ต้องเปลี่ยน folder
+    await clearForm();
+    syncEntitySummary();
+    listEntities();
+  });
+  $('clearFormBtn').addEventListener('click', clearForm);
+  $('upsertBtn').addEventListener('click', upsertEntity);
+  $('deleteBtn').addEventListener('click', deleteEntityWithImage);
+  $('saveBtn').addEventListener('click', upsertEntity);
+
+  clearForm();
+  syncEntitySummary();
+  testConnection();
+  listEntities();
+  </script>
+</body>
+</html>
